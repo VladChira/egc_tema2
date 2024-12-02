@@ -48,7 +48,7 @@ void GenerateTrees(std::vector<glm::mat4> &treeTransforms, Shader *shader,
             if (noiseValue > treeThreshold)
             {
                 glm::mat4 treeTransform = glm::mat4(1.0f);
-                treeTransform = glm::scale(treeTransform, glm::vec3(5.0f));
+                treeTransform = glm::scale(treeTransform, glm::vec3(8.0f));
                 treeTransform = glm::translate(treeTransform, glm::vec3((float)x, -0.6f, (float)z));
                 treeTransforms.push_back(treeTransform);
             }
@@ -60,6 +60,7 @@ void MainScene::Init()
 {
     glDepthMask(GL_TRUE);
     glEnable(GL_DEPTH_TEST);
+    window->SetVSync(true);
 
     ShaderManager::Initialize(window->props.selfDir);
     ShaderManager::LoadShader("Simple", "MVP.Texture.VS.glsl", "Default.FS.glsl");
@@ -95,11 +96,13 @@ void MainScene::Update(float deltaTimeSeconds)
     glClearColor(skyColor.r, skyColor.g, skyColor.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    drone->Update(deltaTimeSeconds);
+
+    // camera->m_transform->SetWorldPosition(drone->pos + glm::vec3(0.0f, 1.5f, 0.0f));
+    // camera->m_transform->SetWorldRotation(glm::vec3(-30.0f, glm::degrees(drone->rot.y) + 90.0f, 0.0f));
     camera->Update();
 
-    drone->Update(deltaTimeSeconds);
     drone->Render(camera);
-
     terrain->Render(camera);
 
     for (glm::mat4 t : treeTransforms)
@@ -116,6 +119,8 @@ void MainScene::Update(float deltaTimeSeconds)
         nbFrames = 0;
         lastTime += 1.0;
     }
+
+    // glFinish();
 }
 
 void MainScene::OnInputUpdate(float deltaTime, int mods)
@@ -127,17 +132,30 @@ void MainScene::OnInputUpdate(float deltaTime, int mods)
 
         // Roll control
         float roll_value = axes[0];
-        if (abs(roll_value) < 0.08)
+        if (abs(roll_value) < 0.1)
             roll_value = 0.0f;
         drone->rot.x += -roll_value * deltaTime;
         drone->rot.x = glm::clamp(drone->rot.x, glm::radians(-20.0f), glm::radians(20.0f));
 
         // Pitch control
         float pitch_value = axes[1];
-        if (abs(pitch_value) < 0.08)
+        if (abs(pitch_value) < 0.1)
             pitch_value = 0.0f;
         drone->rot.z += -pitch_value * deltaTime;
         drone->rot.z = glm::clamp(drone->rot.z, glm::radians(-20.0f), glm::radians(20.0f));
+
+        float up_angle = -axes[4];
+        if (abs(up_angle) < 0.1)
+            up_angle = 0.0f;
+        drone->motor1Thrust = drone->hoverThrust + drone->maxThrust * up_angle;
+        drone->motor2Thrust = drone->hoverThrust + drone->maxThrust * up_angle;
+        drone->motor3Thrust = drone->hoverThrust + drone->maxThrust * up_angle;
+        drone->motor4Thrust = drone->hoverThrust + drone->maxThrust * up_angle;
+
+        float yaw_value = axes[3];
+        if (abs(yaw_value) < 0.1)
+            yaw_value = 0.0f;
+        drone->rot.y += -yaw_value * deltaTime;
     }
 
     if (window->KeyHold(GLFW_KEY_RIGHT))
