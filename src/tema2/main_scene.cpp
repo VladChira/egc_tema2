@@ -85,7 +85,7 @@ void MainScene::Init()
     camera->SetPerspective(90, window->props.aspectRatio, 0.01f, 200);
     camera->m_transform->SetMoveSpeed(2);
     camera->m_transform->SetWorldPosition(glm::vec3(0, 4.6f, 2.5));
-    camera->m_transform->SetWorldRotation(glm::vec3(-15, 90, 0));
+    camera->m_transform->SetWorldRotation(glm::vec3(-15, 0, 0));
     camera->Update();
 }
 
@@ -99,7 +99,7 @@ void MainScene::Update(float deltaTimeSeconds)
     drone->Update(deltaTimeSeconds);
 
     // camera->m_transform->SetWorldPosition(drone->pos + glm::vec3(0.0f, 1.5f, 0.0f));
-    // camera->m_transform->SetWorldRotation(glm::vec3(-30.0f, glm::degrees(drone->rot.y) + 90.0f, 0.0f));
+    // camera->m_transform->SetWorldRotation(glm::vec3(-30.0f, drone->getEulerAngles().y, 0.0f));
     camera->Update();
 
     drone->Render(camera);
@@ -119,8 +119,6 @@ void MainScene::Update(float deltaTimeSeconds)
         nbFrames = 0;
         lastTime += 1.0;
     }
-
-    // glFinish();
 }
 
 void MainScene::OnInputUpdate(float deltaTime, int mods)
@@ -131,73 +129,79 @@ void MainScene::OnInputUpdate(float deltaTime, int mods)
         const float *axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axesCount);
 
         // Roll control
-        float roll_value = axes[0];
-        if (abs(roll_value) < 0.1)
-            roll_value = 0.0f;
-        drone->rot.x += -roll_value * deltaTime;
-        drone->rot.x = glm::clamp(drone->rot.x, glm::radians(-20.0f), glm::radians(20.0f));
+        // float roll_value = axes[0];
+        // if (abs(roll_value) < 0.1)
+        //     roll_value = 0.0f;
+        // drone->Rotate(0.0f, 0.0f, -roll_value);
 
-        // Pitch control
-        float pitch_value = axes[1];
-        if (abs(pitch_value) < 0.1)
-            pitch_value = 0.0f;
-        drone->rot.z += -pitch_value * deltaTime;
-        drone->rot.z = glm::clamp(drone->rot.z, glm::radians(-20.0f), glm::radians(20.0f));
+        // // Pitch control
+        // float pitch_value = axes[1];
+        // if (abs(pitch_value) < 0.1)
+        //     pitch_value = 0.0f;
+        // drone->Rotate(0.0f, pitch_value, 0.0f);
 
-        float up_angle = -axes[4];
-        if (abs(up_angle) < 0.1)
-            up_angle = 0.0f;
-        drone->motor1Thrust = drone->hoverThrust + drone->maxThrust * up_angle;
-        drone->motor2Thrust = drone->hoverThrust + drone->maxThrust * up_angle;
-        drone->motor3Thrust = drone->hoverThrust + drone->maxThrust * up_angle;
-        drone->motor4Thrust = drone->hoverThrust + drone->maxThrust * up_angle;
+        // float up_value = -axes[4];
+        // if (abs(up_value) < 0.1)
+        //     up_value = 0.0f;
+        // drone->motor1Thrust = drone->hoverThrust + drone->maxThrust * up_value;
+        // drone->motor2Thrust = drone->hoverThrust + drone->maxThrust * up_value;
+        // drone->motor3Thrust = drone->hoverThrust + drone->maxThrust * up_value;
+        // drone->motor4Thrust = drone->hoverThrust + drone->maxThrust * up_value;
 
-        float yaw_value = axes[3];
-        if (abs(yaw_value) < 0.1)
-            yaw_value = 0.0f;
-        drone->rot.y += -yaw_value * deltaTime;
+        // float yaw_value = axes[3];
+        // if (abs(yaw_value) < 0.1)
+        //     yaw_value = 0.0f;
+        // drone->rot.y += -yaw_value * deltaTime;
     }
 
     if (window->KeyHold(GLFW_KEY_RIGHT))
     {
-        drone->rot.x -= deltaTime * 1.0f;
-        if (drone->rot.x > glm::radians(20.0f))
-            drone->rot.x = glm::radians(20.0f);
-        if (drone->rot.x < glm::radians(-20.0f))
-            drone->rot.x = glm::radians(-20.0f);
+        drone->RotateRoll(-deltaTime  * 30.0f);
     }
 
     if (window->KeyHold(GLFW_KEY_LEFT))
     {
-        drone->rot.x += deltaTime * 1.0f;
-        if (drone->rot.x > glm::radians(20.0f))
-            drone->rot.x = glm::radians(20.0f);
-        if (drone->rot.x < glm::radians(-20.0f))
-            drone->rot.x = glm::radians(-20.0f);
+        drone->RotateRoll(deltaTime * 30.0f);
     }
 
     if (window->KeyHold(GLFW_KEY_UP))
     {
-        drone->rot.z += deltaTime * 1.0f;
-        if (drone->rot.z > glm::radians(20.0f))
-            drone->rot.z = glm::radians(20.0f);
-        if (drone->rot.z < glm::radians(-20.0f))
-            drone->rot.z = glm::radians(-20.0f);
+        drone->RotatePitch(-deltaTime * 30.0f);
     }
 
     if (window->KeyHold(GLFW_KEY_DOWN))
     {
-        drone->rot.z -= deltaTime * 1.0f;
-        if (drone->rot.z > glm::radians(20.0f))
-            drone->rot.z = glm::radians(20.0f);
-        if (drone->rot.z < glm::radians(-20.0f))
-            drone->rot.z = glm::radians(-20.0f);
+        drone->RotatePitch(deltaTime * 30.0f);
+    }
+
+    if (window->KeyHold(GLFW_KEY_I))
+    {
+        drone->verticalDirection = 1;
+    }
+
+    if (window->KeyHold(GLFW_KEY_K))
+    {
+        drone->verticalDirection = -1;
+    }
+
+    if (!window->KeyHold(GLFW_KEY_I) && !window->KeyHold(GLFW_KEY_K))
+    {
+        drone->verticalDirection = 0;
+    }
+
+    if (window->KeyHold(GLFW_KEY_J))
+    {
+        drone->RotateYaw(deltaTime * 30.0f);
+    }
+
+    if (window->KeyHold(GLFW_KEY_L))
+    {
+        drone->RotateYaw(-deltaTime * 30.0f);
     }
 
     if (window->KeyHold(GLFW_KEY_SPACE))
     {
-        drone->rot.x = 0.0f;
-        drone->rot.z = 0.0f;
+        drone->ResetRotation();
         drone->vel = glm::vec3(0.0f);
     }
 
