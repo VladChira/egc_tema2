@@ -98,8 +98,8 @@ void MainScene::Update(float deltaTimeSeconds)
 
     drone->Update(deltaTimeSeconds);
 
-    // camera->m_transform->SetWorldPosition(drone->pos + glm::vec3(0.0f, 1.5f, 0.0f));
-    // camera->m_transform->SetWorldRotation(glm::vec3(-30.0f, drone->getEulerAngles().y, 0.0f));
+    camera->m_transform->SetWorldPosition(drone->pos + glm::vec3(0.0f, 1.5f, 0.0f));
+    camera->m_transform->SetReleativeRotation(glm::vec3(-30.0f, glm::degrees(drone->getEulerAngles().y), glm::degrees(drone->getEulerAngles().z)));
     camera->Update();
 
     drone->Render(camera);
@@ -154,14 +154,34 @@ void MainScene::OnInputUpdate(float deltaTime, int mods)
         // drone->rot.y += -yaw_value * deltaTime;
     }
 
-    if (window->KeyHold(GLFW_KEY_RIGHT))
+    // ------------- YAW ---------------------
+    if (window->KeyHold(GLFW_KEY_J) || window->KeyHold(GLFW_KEY_L))
     {
-        drone->RotateRoll(-deltaTime  * 30.0f);
+        drone->yawing = true;
+    }
+    else
+    {
+        drone->yawing = false;
+    }
+    if (window->KeyHold(GLFW_KEY_J))
+    {
+        drone->RotateYaw(deltaTime * 30.0f);
     }
 
-    if (window->KeyHold(GLFW_KEY_LEFT))
+    if (window->KeyHold(GLFW_KEY_L))
     {
-        drone->RotateRoll(deltaTime * 30.0f);
+        drone->RotateYaw(-deltaTime * 30.0f);
+    }
+    //------------------------------------------
+
+    //-------------------- PITCH -----------------------
+    if (window->KeyHold(GLFW_KEY_UP) || window->KeyHold(GLFW_KEY_DOWN))
+    {
+        drone->pitching = true;
+    }
+    else
+    {
+        drone->pitching = false;
     }
 
     if (window->KeyHold(GLFW_KEY_UP))
@@ -173,6 +193,28 @@ void MainScene::OnInputUpdate(float deltaTime, int mods)
     {
         drone->RotatePitch(deltaTime * 30.0f);
     }
+    //-------------------------------------------------
+
+    //---------------- ROLL -------------------------------
+    if (window->KeyHold(GLFW_KEY_RIGHT) || window->KeyHold(GLFW_KEY_LEFT))
+    {
+        drone->rolling = true;
+    }
+    else
+    {
+        drone->rolling = false;
+    }
+
+    if (window->KeyHold(GLFW_KEY_RIGHT))
+    {
+        drone->RotateRoll(-deltaTime * 30.0f);
+    }
+
+    if (window->KeyHold(GLFW_KEY_LEFT))
+    {
+        drone->RotateRoll(deltaTime * 30.0f);
+    }
+    //-----------------------------------------------
 
     if (window->KeyHold(GLFW_KEY_I))
     {
@@ -187,16 +229,6 @@ void MainScene::OnInputUpdate(float deltaTime, int mods)
     if (!window->KeyHold(GLFW_KEY_I) && !window->KeyHold(GLFW_KEY_K))
     {
         drone->verticalDirection = 0;
-    }
-
-    if (window->KeyHold(GLFW_KEY_J))
-    {
-        drone->RotateYaw(deltaTime * 30.0f);
-    }
-
-    if (window->KeyHold(GLFW_KEY_L))
-    {
-        drone->RotateYaw(-deltaTime * 30.0f);
     }
 
     if (window->KeyHold(GLFW_KEY_SPACE))

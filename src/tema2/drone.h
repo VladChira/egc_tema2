@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tema2/propeller.h"
+#include "tema2/utils/pidcontroller.h"
 
 #include <unordered_map>
 
@@ -34,6 +35,9 @@ namespace tema2
             propeller4 = new Propeller(name + "_propeller4", shader);
 
             activeForces["Gravity"] = glm::vec3(0.0f, -gravity, 0.0f);
+
+            rollC = new PIDController(5.0f, 0.0f, 0.0f, 0.0f);
+            pitchC = new PIDController(5.0f, 0.0f, 0.0f, 0.0f);
         }
 
         ~Drone()
@@ -69,7 +73,7 @@ namespace tema2
             motor3Thrust = hoverThrustNeeded / 4.0f;
             motor4Thrust = hoverThrustNeeded / 4.0f;
 
-            std::cout << angles << "\n";
+            // std::cout << angles << "\n";
 
             // If we are going up or down, give some extra thrust
             float extraThrust = (hoverThrustNeeded / 4.0f) * 0.10f;
@@ -82,18 +86,17 @@ namespace tema2
             glm::vec3 motorForce = computeMotorForces();
 
             // std::cout << motorForce << "\n";
+            // std::cout << yawing << "\n";
 
             activeForces["MotorForces"] = motorForce;
-            // activeForces["MotorForces"] = glm::vec3(0.0, 70.0, 0.0);
-            activeForces["Drag"] = -vel * 80.0f * deltaTimeSeconds;
+            // activeForces["MotorForces"] = glm::vec3(0.0, gravity, 0.0);
+            activeForces["Drag"] = -vel * 200.0f * deltaTimeSeconds;
 
             glm::vec3 netForce = glm::vec3(0.0f);
             for (auto f : activeForces)
                 netForce += f.second;
 
             glm::vec3 acc = netForce / mass;
-            // vel += acc * deltaTimeSeconds;
-            // pos += vel * deltaTimeSeconds;
 
             glm::vec3 k1_vel = acc * deltaTimeSeconds;
             glm::vec3 k1_pos = vel * deltaTimeSeconds;
@@ -114,6 +117,24 @@ namespace tema2
             propeller2->Update(deltaTimeSeconds);
             propeller3->Update(deltaTimeSeconds);
             propeller4->Update(deltaTimeSeconds);
+
+            if (!rolling)
+            {
+                float correction = rollC->update(getEulerAngles().z);
+                if (fabs(correction) > 0.01f)
+                {
+                    RotateRoll(correction);
+                }
+            }
+
+            if (!pitching)
+            {
+                float correction = pitchC->update(getEulerAngles().x);
+                if (fabs(correction) > 0.01f)
+                {
+                    RotatePitch(correction);
+                }
+            }
         }
 
         void Render(gfxc::Camera *camera)
@@ -155,28 +176,56 @@ namespace tema2
         // Rotate the drone around its local x axis (pitch)
         void RotatePitch(float angle)
         {
-            glm::vec3 eulerAngles = getEulerAngles();
+            // Get the forward vector in global space
+            glm::vec3 forward = orientation * glm::vec3(0.0f, 0.0f, -1.0f);
 
-            // if (eulerAngles.x > glm::radians(20.0f) && angle > 0)
-            //     return;
-            // if (eulerAngles.x < glm::radians(-20.0f) && angle < 0)
-            //     return;
-            glm::quat pitchRotation = glm::angleAxis(glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
-            orientation = pitchRotation * orientation; // Apply in local space
+            // Calculate the current pitch angle (angle between forward and horizontal plane)
+            float currentPitch = glm::degrees(glm::asin(forward.y)); // Only works reliably if forward.y is small
+
+            // Check if the pitch angle is within the limits
+            if ((currentPitch > 20.0f && angle > 0) || (currentPitch < -20.0f && angle < 0))
+                return;
+
+            // Rotate around the local X-axis
+            glm::vec3 localXAxis = orientation * glm::vec3(1.0f, 0.0f, 0.0f);
+            glm::quat pitchRotation = glm::angleAxis(glm::radians(angle), localXAxis);
+
+            // Apply the pitch rotation
+            orientation = pitchRotation * orientation;
         }
 
         // Rotate the drone around its local y axis (yaw)
         void RotateYaw(float angle)
         {
-            glm::quat yawRotation = glm::angleAxis(glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-            orientation = yawRotation * orientation; // Apply in local space
+            if (rolling || pitching)
+                return;
+            // Rotate around the local Y-axis
+            glm::vec3 localYAxis = orientation * glm::vec3(0.0f, 1.0f, 0.0f);
+            glm::quat yawRotation = glm::angleAxis(glm::radians(angle), localYAxis);
+
+            // Apply the yaw rotation
+            orientation = yawRotation * orientation;
         }
 
         // Rotate the drone around its local z axis (roll)
         void RotateRoll(float angle)
         {
-            glm::quat rollRotation = glm::angleAxis(glm::radians(angle), glm::vec3(0.0f, 0.0f, 1.0f));
-            orientation = rollRotation * orientation; // Apply in local space
+            // Get the up vector in global space
+            glm::vec3 up = orientation * glm::vec3(0.0f, 1.0f, 0.0f);
+
+            // Calculate roll angle (dot product or approximation of tilt)
+            float currentRoll = glm::degrees(glm::atan(up.x, up.y)); // Roll relative to the global XY-plane
+            // std::cout << currentRoll << "\n";
+            // Check if the roll angle is within the limits
+            if ((currentRoll > 20.0f && angle < 0) || (currentRoll < -20.0f && angle > 0))
+                return;
+
+            // Rotate around the local Z-axis
+            glm::vec3 localZAxis = orientation * glm::vec3(0.0f, 0.0f, 1.0f);
+            glm::quat rollRotation = glm::angleAxis(glm::radians(angle), localZAxis);
+
+            // Apply the roll rotation
+            orientation = rollRotation * orientation;
         }
 
         void ResetRotation()
@@ -192,7 +241,7 @@ namespace tema2
         glm::vec3 pos = glm::vec3(0.0f), vel = glm::vec3(0.0f);
         std::unordered_map<std::string, glm::vec3> activeForces;
 
-        float gravity = 70.0f;
+        float gravity = 80.0f;
 
         float motor1Thrust;
         float motor2Thrust;
@@ -200,6 +249,11 @@ namespace tema2
         float motor4Thrust;
 
         int verticalDirection = 0;
+
+        bool rolling = false;
+        bool pitching = false;
+        bool yawing = false;
+        PIDController *rollC, *pitchC;
 
     private:
         std::string name;
