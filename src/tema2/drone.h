@@ -36,8 +36,8 @@ namespace tema2
 
             activeForces["Gravity"] = glm::vec3(0.0f, -gravity, 0.0f);
 
-            rollC = new PIDController(5.0f, 0.0f, 0.0f, 0.0f);
-            pitchC = new PIDController(5.0f, 0.0f, 0.0f, 0.0f);
+            rollC = new PIDController(0.1f, 0.0f, 0.0f, 0.0f);
+            pitchC = new PIDController(0.1f, 0.0f, 0.0f, 0.0f);
         }
 
         ~Drone()
@@ -65,9 +65,10 @@ namespace tema2
 
         void Update(float deltaTimeSeconds)
         {
-            // Compute the thrust needed to hover against gravity, EVEN WHEN NOT LEVELED OFF
-            glm::vec3 angles = glm::eulerAngles(orientation);
-            float hoverThrustNeeded = (mass * gravity) / (std::cos(angles.x) * std::cos(angles.z));
+            // Compute the thrust needed to hover against gravity
+            glm::vec3 localUp = orientation * glm::vec3(0.0f, 1.0f, 0.0f);
+            float hoverThrustNeeded = mass * gravity / glm::dot(localUp, glm::vec3(0.0f, 1.0f, 0.0f));
+
             motor1Thrust = hoverThrustNeeded / 4.0f;
             motor2Thrust = hoverThrustNeeded / 4.0f;
             motor3Thrust = hoverThrustNeeded / 4.0f;
@@ -76,7 +77,7 @@ namespace tema2
             // std::cout << angles << "\n";
 
             // If we are going up or down, give some extra thrust
-            float extraThrust = (hoverThrustNeeded / 4.0f) * 0.10f;
+            float extraThrust = (hoverThrustNeeded / 4.0f) * 0.40f;
             motor1Thrust += extraThrust * verticalDirection;
             motor2Thrust += extraThrust * verticalDirection;
             motor3Thrust += extraThrust * verticalDirection;
@@ -86,7 +87,6 @@ namespace tema2
             glm::vec3 motorForce = computeMotorForces();
 
             // std::cout << motorForce << "\n";
-            // std::cout << yawing << "\n";
 
             activeForces["MotorForces"] = motorForce;
             // activeForces["MotorForces"] = glm::vec3(0.0, gravity, 0.0);
@@ -118,19 +118,23 @@ namespace tema2
             propeller3->Update(deltaTimeSeconds);
             propeller4->Update(deltaTimeSeconds);
 
-            if (!rolling)
+            if (!rolling && !pitching && !yawing)
             {
-                float correction = rollC->update(getEulerAngles().z);
-                if (fabs(correction) > 0.01f)
+                glm::vec3 ypr = GetYPR();
+                float yaw = ypr.x;
+                float pitch = ypr.y;
+                float roll = ypr.z;
+
+                // Apply corrections
+                float correction = rollC->update(roll);
+
+                if (fabs(correction) > 0.0001f)
                 {
                     RotateRoll(correction);
                 }
-            }
 
-            if (!pitching)
-            {
-                float correction = pitchC->update(getEulerAngles().x);
-                if (fabs(correction) > 0.01f)
+                correction = pitchC->update(pitch);
+                if (fabs(correction) > 0.0001f)
                 {
                     RotatePitch(correction);
                 }
@@ -173,59 +177,71 @@ namespace tema2
             propeller4->Render(camera);
         }
 
-        // Rotate the drone around its local x axis (pitch)
-        void RotatePitch(float angle)
+        glm::vec3 GetYPR()
         {
-            // Get the forward vector in global space
-            glm::vec3 forward = orientation * glm::vec3(0.0f, 0.0f, -1.0f);
+            glm::mat4 R = glm::toMat4(orientation);
 
-            // Calculate the current pitch angle (angle between forward and horizontal plane)
-            float currentPitch = glm::degrees(glm::asin(forward.y)); // Only works reliably if forward.y is small
+            float pitch = std::asin(-R[2][1]);
+            float yaw = std::atan2(R[2][0], R[2][2]);
+            float roll = std::atan2(R[0][1], R[1][1]);
 
-            // Check if the pitch angle is within the limits
-            if ((currentPitch > 20.0f && angle > 0) || (currentPitch < -20.0f && angle < 0))
-                return;
+            return glm::vec3(yaw, pitch, roll); // return order: (yaw, pitch, roll)
+        }
 
-            // Rotate around the local X-axis
-            glm::vec3 localXAxis = orientation * glm::vec3(1.0f, 0.0f, 0.0f);
-            glm::quat pitchRotation = glm::angleAxis(glm::radians(angle), localXAxis);
+        glm::quat RebuildOrientation(float yaw, float pitch, float roll)
+        {
+            glm::quat q_yaw = glm::angleAxis(yaw, glm::vec3(0, 1, 0));
+            glm::quat q_pitch = glm::angleAxis(pitch, glm::vec3(1, 0, 0));
+            glm::quat q_roll = glm::angleAxis(roll, glm::vec3(0, 0, 1));
 
-            // Apply the pitch rotation
-            orientation = pitchRotation * orientation;
+            glm::quat newOrientation = q_yaw * q_pitch * q_roll;
+            return glm::normalize(newOrientation);
+        }
+
+        // Rotate the drone around its local x axis (pitch)
+        void RotatePitch(float deltaAngle)
+        {
+            glm::vec3 ypr = GetYPR();
+            float yaw = ypr.x;
+            float pitch = ypr.y;
+            float roll = ypr.z;
+
+            // Adjust and clamp pitch
+            pitch += deltaAngle;
+            pitch = glm::clamp(pitch, -glm::radians(20.0f), glm::radians(20.0f));
+
+            orientation = RebuildOrientation(yaw, pitch, roll);
         }
 
         // Rotate the drone around its local y axis (yaw)
-        void RotateYaw(float angle)
+        void RotateYaw(float deltaAngle)
         {
             if (rolling || pitching)
                 return;
-            // Rotate around the local Y-axis
-            glm::vec3 localYAxis = orientation * glm::vec3(0.0f, 1.0f, 0.0f);
-            glm::quat yawRotation = glm::angleAxis(glm::radians(angle), localYAxis);
+            glm::vec3 ypr = GetYPR();
+            float yaw = ypr.x;
+            float pitch = ypr.y;
+            float roll = ypr.z;
 
-            // Apply the yaw rotation
-            orientation = yawRotation * orientation;
+            // Yaw is unconstrained
+            yaw += deltaAngle;
+
+            orientation = RebuildOrientation(yaw, pitch, roll);
         }
 
         // Rotate the drone around its local z axis (roll)
-        void RotateRoll(float angle)
+        void RotateRoll(float deltaAngle)
         {
-            // Get the up vector in global space
-            glm::vec3 up = orientation * glm::vec3(0.0f, 1.0f, 0.0f);
+            glm::vec3 ypr = GetYPR();
+            float yaw = ypr.x;
+            float pitch = ypr.y;
+            float roll = ypr.z;
 
-            // Calculate roll angle (dot product or approximation of tilt)
-            float currentRoll = glm::degrees(glm::atan(up.x, up.y)); // Roll relative to the global XY-plane
-            // std::cout << currentRoll << "\n";
-            // Check if the roll angle is within the limits
-            if ((currentRoll > 20.0f && angle < 0) || (currentRoll < -20.0f && angle > 0))
-                return;
+            // Adjust and clamp roll
+            roll += deltaAngle;
+            roll = glm::clamp(roll, -glm::radians(20.0f), glm::radians(20.0f));
 
-            // Rotate around the local Z-axis
-            glm::vec3 localZAxis = orientation * glm::vec3(0.0f, 0.0f, 1.0f);
-            glm::quat rollRotation = glm::angleAxis(glm::radians(angle), localZAxis);
-
-            // Apply the roll rotation
-            orientation = rollRotation * orientation;
+            orientation = RebuildOrientation(yaw, pitch, roll);
         }
 
         void ResetRotation()
@@ -233,15 +249,10 @@ namespace tema2
             orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
         }
 
-        glm::vec3 getEulerAngles()
-        {
-            return glm::eulerAngles(orientation);
-        }
-
         glm::vec3 pos = glm::vec3(0.0f), vel = glm::vec3(0.0f);
         std::unordered_map<std::string, glm::vec3> activeForces;
 
-        float gravity = 80.0f;
+        float gravity = 110.0f;
 
         float motor1Thrust;
         float motor2Thrust;

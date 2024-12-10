@@ -1,22 +1,21 @@
 #pragma once
-
-#include "tema2/primitives/primitive.h"
-
+#include "core/gpu/mesh.h"
+#include "tema2/utils/value_noise.h"
 namespace tema2
 {
-    class Terrain : public Primitive
+    class Terrain
     {
     public:
         Terrain(std::string name, Shader *shader, unsigned int resolution)
-            : Primitive(name, shader), resolution(resolution) {}
+            : resolution(resolution), shader(shader), name(name) {}
 
-        virtual void ComputeMesh() override
+        void ComputeMesh()
         {
             std::vector<VertexFormat> vertices;
             std::vector<unsigned int> indices;
 
             // Calculate step size
-            int size = 1000.0f;
+            int size = 500.0f;
             float step = size / resolution; // Distance between grid points
 
             // Generate vertices
@@ -26,7 +25,15 @@ namespace tema2
                 {
                     float xPos = -size / 2.0f + x * step; // Centered around (0,0)
                     float zPos = -size / 2.0f + z * step;
-                    vertices.emplace_back(glm::vec3(xPos, 0.0f, zPos)); // Flat terrain (y = 0)
+
+                    float height = valueNoise(glm::vec2(xPos, zPos) * 0.02f) * 20.0f;
+                    glm::vec3 pos = glm::vec3(xPos, height, zPos);
+
+                    glm::vec3 col = glm::vec3(1.0f);    
+
+                    glm::vec3 normal = glm::vec3(0.0f, 1.0f, 0.0f);
+                    glm::vec2 uv = glm::vec2(x / (float)resolution, z / (float)resolution);
+                    vertices.push_back(VertexFormat(pos, col, normal, uv));
                 }
             }
 
@@ -53,24 +60,29 @@ namespace tema2
             }
 
             // Create the mesh
-            mesh = new Mesh(name);
+            mesh = new Mesh("Terrain");
             mesh->InitFromData(vertices, indices);
         }
 
-        virtual void Render(gfxc::Camera *camera) override
+        void Render(gfxc::Camera *camera)
         {
             shader->Use();
             glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
             glUniformMatrix4fv(shader->loc_projection_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetProjectionMatrix()));
             glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(transform));
 
-            GLuint colorLoc = shader->GetUniformLocation("color");
-            if (colorLoc)
-                glUniform3f(colorLoc, color.r, color.g, color.b);
+            glUniform1f(glGetUniformLocation(shader->GetProgramID(), "uTerrainScale"), 20.0f);   // adjust as needed
+            glUniform1f(glGetUniformLocation(shader->GetProgramID(), "uNoiseFrequency"), 10.0f); // frequency of noise sampling
+            glUniform1f(glGetUniformLocation(shader->GetProgramID(), "uMaxHeight"), 20.0f);
+
             mesh->Render();
         }
 
     private:
         unsigned int resolution; // Number of subdivisions along one axis
+        Mesh *mesh;
+        glm::mat4 transform = glm::mat4(1.0f);
+        Shader *shader;
+        std::string name;
     };
 }

@@ -1,20 +1,43 @@
 #pragma once
-#include <cmath>
+
+#include <cmath>       // For sin, floor, etc.
+#include <glm/glm.hpp> // For vec2 (optional, or use your own vector implementation)
+
 #include "utils/math_utils.h"
 
-inline static float hash(int x) {
-    x = (x << 13) ^ x;
-    return 1.0f - ((x * (x * x * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0f;
+inline float rand(const glm::vec2 &co)
+{
+    // Matches the GLSL implementation
+    return glm::fract(std::sin(glm::dot(co, glm::vec2(12.9898f, 78.233f))) * 43758.5453f);
 }
 
-inline float value_noise(float x) {
-    int x0 = (int)floor(x);
-    int x1 = x0 + 1;
-    float t = x - x0;
-    float fade_t = t * t * (3 - 2 * t);
+// Smooth interpolation function
+inline float smoothstepNoise(float t)
+{
+    return t * t * (3.0f - 2.0f * t);
+}
 
-    float value0 = hash(x0);
-    float value1 = hash(x1);
+// Value noise function
+inline float valueNoise(const glm::vec2 &uv)
+{
+    // Floor to get base grid cell
+    glm::vec2 i = glm::floor(uv);
+    // Fractional part for interpolation
+    glm::vec2 f = glm::fract(uv);
 
-    return lerp(value0, value1, fade_t);
+    // Get corners' random values
+    float v00 = rand(i + glm::vec2(0.0f, 0.0f));
+    float v10 = rand(i + glm::vec2(1.0f, 0.0f));
+    float v01 = rand(i + glm::vec2(0.0f, 1.0f));
+    float v11 = rand(i + glm::vec2(1.0f, 1.0f));
+
+    // Interpolate along x
+    float tx = smoothstepNoise(f.x);
+    float ty = smoothstepNoise(f.y);
+
+    float nx0 = lerp(v00, v10, tx);
+    float nx1 = lerp(v01, v11, tx);
+
+    // Interpolate along y
+    return lerp(nx0, nx1, ty);
 }

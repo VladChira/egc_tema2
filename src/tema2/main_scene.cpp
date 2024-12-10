@@ -25,35 +25,55 @@ MainScene::~MainScene()
 }
 
 void GenerateTrees(std::vector<glm::mat4> &treeTransforms, Shader *shader,
-                   int gridSize = 100, float treeThreshold = 0.9f, float noiseScale = 0.1f)
+                   int gridSize = 50, float treeThreshold = 0.8f, float noiseScale = 0.1f)
 {
     treeTransforms.clear();
 
-    // Large prime numbers for hashing
-    const int PRIME1 = 73856093;
-    const int PRIME2 = 19349663;
+    int resolution = 100;
+    int size = 500.0f;
+    float step = size / resolution; // Distance between grid points
 
-    // Loop over a grid of size gridSize x gridSize
-    for (int x = -gridSize / 2; x < gridSize / 2; ++x)
+    // Generate vertices
+    for (unsigned int z = 0; z <= resolution; ++z)
     {
-        for (int z = -gridSize / 2; z < gridSize / 2; ++z)
+        for (unsigned int x = 0; x <= resolution; ++x)
         {
-            // Map (x, z) to a 1D value using primes for hashing
-            float value_noise_input = (x * PRIME1 + z * PRIME2) * noiseScale;
+            float xPos = -size / 2.0f + x * step;
+            float zPos = -size / 2.0f + z * step;
 
-            // Calculate the 1D noise value for this input
-            float noiseValue = value_noise(value_noise_input);
+            float height = valueNoise(glm::vec2(xPos, zPos) * 0.02f) * 20.0f;
 
+            float noiseValue = valueNoise(glm::vec2(xPos, zPos) * 0.5f);
             // Place a tree if the noise value exceeds the threshold
+            std::cout << noiseValue << "\n";
             if (noiseValue > treeThreshold)
             {
                 glm::mat4 treeTransform = glm::mat4(1.0f);
-                treeTransform = glm::scale(treeTransform, glm::vec3(8.0f));
-                treeTransform = glm::translate(treeTransform, glm::vec3((float)x, -0.6f, (float)z));
+                treeTransform = glm::translate(treeTransform, glm::vec3((float)xPos, height - 2.0f, (float)zPos));
+                treeTransform = glm::scale(treeTransform, glm::vec3(6.0f));
                 treeTransforms.push_back(treeTransform);
             }
         }
     }
+
+    // Loop over a grid of size gridSize x gridSize
+    // for (int x = -gridSize / 2; x <= gridSize / 2; ++x)
+    // {
+    //     for (int z = -gridSize / 2; z <= gridSize / 2; ++z)
+    //     {
+    //         float noiseValue = valueNoise(glm::vec2(x, z) + glm::vec2(10, 10));
+
+    //         float height = valueNoise(glm::vec2(x, z) * 0.02f) * 20.0f;
+    //         // Place a tree if the noise value exceeds the threshold
+    //         if (noiseValue > treeThreshold)
+    //         {
+    //             glm::mat4 treeTransform = glm::mat4(1.0f);
+    //             treeTransform = glm::scale(treeTransform, glm::vec3(8.0f));
+    //             treeTransform = glm::translate(treeTransform, glm::vec3((float)x, height, (float)z));
+    //             treeTransforms.push_back(treeTransform);
+    //         }
+    //     }
+    // }
 }
 
 void MainScene::Init()
@@ -68,17 +88,16 @@ void MainScene::Init()
     ShaderManager::LoadShader("VertexNormal", "MVP.Texture.VS.glsl", "Normals.FS.glsl");
     ShaderManager::LoadShader("VertexColor", "MVP.Texture.VS.glsl", "VertexColor.FS.glsl");
 
+    ShaderManager::LoadShader("Terrain", "terrain.VS.glsl", "terrain.FS.glsl");
     ShaderManager::LoadShader("ColorOnly", "MVP.VS.glsl", "Color.FS.glsl");
 
     drone = new Drone("drone", ShaderManager::GetShaderByName("ColorOnly"));
     drone->pos = glm::vec3(0.0f, 3.0f, 0.0f);
 
-    terrain = new Terrain("Ground", ShaderManager::GetShaderByName("ColorOnly"), 100);
-    terrain->SetColor(glm::vec3(0.0f, 1.0f, 0.0f));
+    terrain = new Terrain("Ground", ShaderManager::GetShaderByName("Terrain"), 100);
     terrain->ComputeMesh();
 
     tree = new Tree("Tree 1", ShaderManager::GetShaderByName("ColorOnly"));
-
     GenerateTrees(treeTransforms, ShaderManager::GetShaderByName("ColorOnly"));
 
     camera = new gfxc::Camera();
@@ -99,7 +118,7 @@ void MainScene::Update(float deltaTimeSeconds)
     drone->Update(deltaTimeSeconds);
 
     camera->m_transform->SetWorldPosition(drone->pos + glm::vec3(0.0f, 1.5f, 0.0f));
-    camera->m_transform->SetReleativeRotation(glm::vec3(-30.0f, glm::degrees(drone->getEulerAngles().y), glm::degrees(drone->getEulerAngles().z)));
+    camera->m_transform->SetReleativeRotation(glm::vec3(-30.0f, glm::degrees(drone->GetYPR().x), glm::degrees(drone->GetYPR().z)));
     camera->Update();
 
     drone->Render(camera);
@@ -165,12 +184,12 @@ void MainScene::OnInputUpdate(float deltaTime, int mods)
     }
     if (window->KeyHold(GLFW_KEY_J))
     {
-        drone->RotateYaw(deltaTime * 30.0f);
+        drone->RotateYaw(deltaTime * 1.0f);
     }
 
     if (window->KeyHold(GLFW_KEY_L))
     {
-        drone->RotateYaw(-deltaTime * 30.0f);
+        drone->RotateYaw(-deltaTime * 1.0f);
     }
     //------------------------------------------
 
@@ -186,12 +205,12 @@ void MainScene::OnInputUpdate(float deltaTime, int mods)
 
     if (window->KeyHold(GLFW_KEY_UP))
     {
-        drone->RotatePitch(-deltaTime * 30.0f);
+        drone->RotatePitch(-deltaTime * 1.0f);
     }
 
     if (window->KeyHold(GLFW_KEY_DOWN))
     {
-        drone->RotatePitch(deltaTime * 30.0f);
+        drone->RotatePitch(deltaTime * 1.0f);
     }
     //-------------------------------------------------
 
@@ -207,12 +226,12 @@ void MainScene::OnInputUpdate(float deltaTime, int mods)
 
     if (window->KeyHold(GLFW_KEY_RIGHT))
     {
-        drone->RotateRoll(-deltaTime * 30.0f);
+        drone->RotateRoll(-deltaTime * 1.0f);
     }
 
     if (window->KeyHold(GLFW_KEY_LEFT))
     {
-        drone->RotateRoll(deltaTime * 30.0f);
+        drone->RotateRoll(deltaTime * 1.0f);
     }
     //-----------------------------------------------
 
