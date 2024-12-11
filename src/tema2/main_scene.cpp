@@ -25,7 +25,7 @@ MainScene::~MainScene()
 }
 
 void GenerateTrees(std::vector<glm::mat4> &treeTransforms, Shader *shader,
-                   int gridSize = 50, float treeThreshold = 0.8f, float noiseScale = 0.1f)
+                   int gridSize = 50, float treeThreshold = 0.95f, float noiseScale = 0.1f)
 {
     treeTransforms.clear();
 
@@ -43,14 +43,14 @@ void GenerateTrees(std::vector<glm::mat4> &treeTransforms, Shader *shader,
 
             float height = valueNoise(glm::vec2(xPos, zPos) * 0.02f) * 20.0f;
 
-            float noiseValue = valueNoise(glm::vec2(xPos, zPos) * 0.5f);
+            float noiseValue = valueNoise(glm::vec2(xPos, zPos + 1) * 0.1f);
             // Place a tree if the noise value exceeds the threshold
             std::cout << noiseValue << "\n";
             if (noiseValue > treeThreshold)
             {
                 glm::mat4 treeTransform = glm::mat4(1.0f);
-                treeTransform = glm::translate(treeTransform, glm::vec3((float)xPos, height - 2.0f, (float)zPos));
-                treeTransform = glm::scale(treeTransform, glm::vec3(6.0f));
+                treeTransform = glm::translate(treeTransform, glm::vec3((float)xPos, height - 13.0f, (float)zPos));
+                treeTransform = glm::scale(treeTransform, glm::vec3(20.0f));
                 treeTransforms.push_back(treeTransform);
             }
         }
@@ -101,7 +101,7 @@ void MainScene::Init()
     GenerateTrees(treeTransforms, ShaderManager::GetShaderByName("ColorOnly"));
 
     camera = new gfxc::Camera();
-    camera->SetPerspective(90, window->props.aspectRatio, 0.01f, 200);
+    camera->SetPerspective(90, window->props.aspectRatio, 0.01f, 1000);
     camera->m_transform->SetMoveSpeed(2);
     camera->m_transform->SetWorldPosition(glm::vec3(0, 4.6f, 2.5));
     camera->m_transform->SetWorldRotation(glm::vec3(-15, 0, 0));
