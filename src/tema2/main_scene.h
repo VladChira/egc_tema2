@@ -8,6 +8,8 @@
 #include "tema2/terrain.h"
 #include "tema2/drone.h"
 #include "tema2/tree.h"
+#include "tema2/obstacle.h"
+#include "tema2/checkpoint.h"
 
 namespace tema2
 {
@@ -21,6 +23,9 @@ namespace tema2
         void Update(float deltaTimeSeconds);
         void OnInputUpdate(float deltaTime, int mods) override;
 
+        void GenerateObstacles();
+        void GenerateCheckpoints();
+
     private:
         glm::vec3 skyColor = glm::vec3(0.529, 0.807, 0.921);
         gfxc::Camera *camera;
@@ -29,5 +34,11 @@ namespace tema2
         Terrain *terrain;
         Tree *tree; // a single tree mesh drawn multiple times!
         std::vector<glm::mat4> treeTransforms;
+
+        Mesh *obstacleMesh;
+        std::vector<Obstacle *> obstacles;
+
+        std::vector<Checkpoint *> checkpoints;
+        Checkpoint **activeCheckpoint;
     };
 }

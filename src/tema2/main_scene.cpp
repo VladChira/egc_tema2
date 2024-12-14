@@ -24,8 +24,7 @@ MainScene::~MainScene()
 {
 }
 
-void GenerateTrees(std::vector<glm::mat4> &treeTransforms, Shader *shader,
-                   int gridSize = 50, float treeThreshold = 0.95f, float noiseScale = 0.1f)
+void GenerateTrees(std::vector<glm::mat4> &treeTransforms, Shader *shader, Terrain *terrain)
 {
     treeTransforms.clear();
 
@@ -41,39 +40,101 @@ void GenerateTrees(std::vector<glm::mat4> &treeTransforms, Shader *shader,
             float xPos = -size / 2.0f + x * step;
             float zPos = -size / 2.0f + z * step;
 
-            float height = valueNoise(glm::vec2(xPos, zPos) * 0.02f) * 20.0f;
+            glm::vec2 pos2D = glm::vec2(xPos, zPos);
 
+            // Get height using the getHeightAtPosition function
+            float height = terrain->getHeightAtPosition(pos2D, size, resolution);
+
+            // Calculate noise value for tree placement
             float noiseValue = valueNoise(glm::vec2(xPos, zPos + 1) * 0.1f);
+
             // Place a tree if the noise value exceeds the threshold
-            std::cout << noiseValue << "\n";
-            if (noiseValue > treeThreshold)
+            if (noiseValue > 0.95f)
             {
                 glm::mat4 treeTransform = glm::mat4(1.0f);
-                treeTransform = glm::translate(treeTransform, glm::vec3((float)xPos, height - 13.0f, (float)zPos));
+                treeTransform = glm::translate(treeTransform, glm::vec3(xPos, height - 13.0f, zPos));
                 treeTransform = glm::scale(treeTransform, glm::vec3(20.0f));
                 treeTransforms.push_back(treeTransform);
             }
         }
     }
+}
 
-    // Loop over a grid of size gridSize x gridSize
-    // for (int x = -gridSize / 2; x <= gridSize / 2; ++x)
-    // {
-    //     for (int z = -gridSize / 2; z <= gridSize / 2; ++z)
-    //     {
-    //         float noiseValue = valueNoise(glm::vec2(x, z) + glm::vec2(10, 10));
+void MainScene::GenerateObstacles()
+{
+    int resolution = 100;
+    int size = 500.0f;
+    float step = size / resolution; // Distance between grid points
 
-    //         float height = valueNoise(glm::vec2(x, z) * 0.02f) * 20.0f;
-    //         // Place a tree if the noise value exceeds the threshold
-    //         if (noiseValue > treeThreshold)
-    //         {
-    //             glm::mat4 treeTransform = glm::mat4(1.0f);
-    //             treeTransform = glm::scale(treeTransform, glm::vec3(8.0f));
-    //             treeTransform = glm::translate(treeTransform, glm::vec3((float)x, height, (float)z));
-    //             treeTransforms.push_back(treeTransform);
-    //         }
-    //     }
-    // }
+    // Generate vertices
+    for (unsigned int z = 0; z <= resolution; ++z)
+    {
+        for (unsigned int x = 0; x <= resolution; ++x)
+        {
+            float xPos = -size / 2.0f + x * step;
+            float zPos = -size / 2.0f + z * step;
+
+            glm::vec2 pos2D = glm::vec2(xPos, zPos);
+
+            // Get height using the getHeightAtPosition function
+            float height = terrain->getHeightAtPosition(pos2D, size, resolution);
+
+            // Calculate noise value for tree placement
+            float noiseValue = valueNoise(glm::vec2(xPos, zPos + 1) * 0.1f);
+
+            // Place an obstacle if no tree and if the noise value exceeds the threshold
+            if (noiseValue < 0.95f && noiseValue > 0.94f)
+            {
+                glm::mat4 obstacleTransform = glm::mat4(1.0f);
+                Obstacle *obs = new Obstacle("Obstacle " + std::to_string(z) + std::to_string(x), ShaderManager::GetShaderByName("ColorOnly"));
+                obs->mesh = obstacleMesh;
+
+                obstacleTransform = glm::translate(obstacleTransform, glm::vec3(xPos, height, zPos));
+                obstacleTransform = glm::scale(obstacleTransform, glm::vec3(7.0f));
+                obs->transform = obstacleTransform;
+
+                obstacles.push_back(obs);
+            }
+        }
+    }
+}
+
+void MainScene::GenerateCheckpoints()
+{
+    int resolution = 100;
+    int size = 500.0f;
+    float step = size / resolution; // Distance between grid points
+
+    // Generate vertices
+    for (unsigned int z = 0; z <= resolution; ++z)
+    {
+        for (unsigned int x = 0; x <= resolution; ++x)
+        {
+            float xPos = -size / 2.0f + x * step;
+            float zPos = -size / 2.0f + z * step;
+
+            glm::vec2 pos2D = glm::vec2(xPos, zPos);
+
+            // Get height using the getHeightAtPosition function
+            float height = terrain->getHeightAtPosition(pos2D, size, resolution);
+
+            // Calculate noise value for tree placement
+            float noiseValue = valueNoise(glm::vec2(xPos, zPos + 1) * 0.1f);
+
+            // Place an obstacle if no tree and if the noise value exceeds the threshold
+            if (noiseValue < 0.93f && noiseValue > 0.929f)
+            {
+                glm::mat4 checkPointTransform = glm::mat4(1.0f);
+                Checkpoint *c = new Checkpoint("checkpoint", ShaderManager::GetShaderByName("ColorOnly"));
+
+                checkPointTransform = glm::translate(checkPointTransform, glm::vec3(xPos, height + 12.0f, zPos));
+                checkPointTransform = glm::scale(checkPointTransform, glm::vec3(7.0f));
+                c->transform = checkPointTransform;
+
+                checkpoints.push_back(c);
+            }
+        }
+    }
 }
 
 void MainScene::Init()
@@ -98,7 +159,13 @@ void MainScene::Init()
     terrain->ComputeMesh();
 
     tree = new Tree("Tree 1", ShaderManager::GetShaderByName("ColorOnly"));
-    GenerateTrees(treeTransforms, ShaderManager::GetShaderByName("ColorOnly"));
+    GenerateTrees(treeTransforms, ShaderManager::GetShaderByName("ColorOnly"), terrain);
+
+    obstacleMesh = new Mesh("Obstacle");
+    obstacleMesh->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "props"), "Rock1.obj");
+    GenerateObstacles();
+
+    GenerateCheckpoints();
 
     camera = new gfxc::Camera();
     camera->SetPerspective(90, window->props.aspectRatio, 0.01f, 1000);
@@ -126,6 +193,23 @@ void MainScene::Update(float deltaTimeSeconds)
 
     for (glm::mat4 t : treeTransforms)
         tree->Render(camera, t);
+
+    for (auto obs : obstacles)
+        obs->Render(camera);
+
+    glLineWidth(5.0f);
+    for (auto checkpoint : checkpoints)
+        checkpoint->Render(camera);
+
+    // Shader *s = ShaderManager::GetShaderByName("ColorOnly");
+    // s->Use();
+    // glUniformMatrix4fv(s->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
+    // glUniformMatrix4fv(s->loc_projection_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetProjectionMatrix()));
+    // glUniformMatrix4fv(s->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+    // GLuint colorLoc = s->GetUniformLocation("color");
+    // if (colorLoc)
+    //     glUniform3f(colorLoc, 0.0f, 0.0f, 0.0f);
+    // obstacles[0]->Render();
 
     // Measure speed
     static double lastTime = glfwGetTime();

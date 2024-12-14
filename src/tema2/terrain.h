@@ -26,13 +26,16 @@ namespace tema2
                     float xPos = -size / 2.0f + x * step; // Centered around (0,0)
                     float zPos = -size / 2.0f + z * step;
 
-                    float height = valueNoise(glm::vec2(xPos, zPos) * 0.02f) * 20.0f;
+                    glm::vec2 pos2D = glm::vec2(xPos, zPos);
+
+                    // Get height using the getHeightAtPosition function
+                    float height = getHeightAtPosition(pos2D, size, resolution);
+
                     glm::vec3 pos = glm::vec3(xPos, height, zPos);
-
-                    glm::vec3 col = glm::vec3(1.0f);    
-
+                    glm::vec3 col = glm::vec3(1.0f);
                     glm::vec3 normal = glm::vec3(0.0f, 1.0f, 0.0f);
                     glm::vec2 uv = glm::vec2(x / (float)resolution, z / (float)resolution);
+
                     vertices.push_back(VertexFormat(pos, col, normal, uv));
                 }
             }
@@ -76,6 +79,24 @@ namespace tema2
             glUniform1f(glGetUniformLocation(shader->GetProgramID(), "uMaxHeight"), 20.0f);
 
             mesh->Render();
+        }
+
+        float getHeightAtPosition(const glm::vec2 &position, float size, unsigned int resolution)
+        {
+            // Calculate step size
+            float step = size / resolution;
+
+            // Map the position into the range used for the grid
+            float xNormalized = (position.x + size / 2.0f) / step;
+            float zNormalized = (position.y + size / 2.0f) / step;
+
+            // Calculate the value noise position
+            glm::vec2 noisePosition = position * 0.02f;
+
+            // Get the height using the valueNoise function
+            float height = valueNoise(noisePosition) * 20.0f;
+
+            return height;
         }
 
     private:
