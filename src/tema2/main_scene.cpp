@@ -14,6 +14,9 @@
 
 #include "tema2/utils/value_noise.h"
 
+#include <random>
+#include <algorithm>
+
 using namespace tema2;
 
 MainScene::MainScene()
@@ -166,6 +169,16 @@ void MainScene::Init()
     GenerateObstacles();
 
     GenerateCheckpoints();
+    indices.assign(checkpoints.size(), 0);
+    for (int i = 0; i < checkpoints.size(); ++i)
+        indices[i] = i;
+
+    // Shuffle the vector
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(indices.begin(), indices.end(), g);
+
+    activeCheckpoint = &(checkpoints[indices[0]]);
 
     camera = new gfxc::Camera();
     camera->SetPerspective(90, window->props.aspectRatio, 0.01f, 1000);
@@ -199,29 +212,35 @@ void MainScene::Update(float deltaTimeSeconds)
 
     glLineWidth(5.0f);
     for (auto checkpoint : checkpoints)
-        checkpoint->Render(camera);
+    {
+        if (activeCheckpoint != nullptr && checkpoint == *activeCheckpoint)
+        {
+            if (!checkpoint->previousCollided && checkpoint->CheckCollision(drone->pos)) {
+                // Entered through the active gate
+                currentIndex++;
+                activeCheckpoint = &checkpoints[indices[currentIndex]];
+                break;
+            }
+            else
+                checkpoint->CheckCollision(drone->pos);
 
-    // Shader *s = ShaderManager::GetShaderByName("ColorOnly");
-    // s->Use();
-    // glUniformMatrix4fv(s->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
-    // glUniformMatrix4fv(s->loc_projection_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetProjectionMatrix()));
-    // glUniformMatrix4fv(s->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
-    // GLuint colorLoc = s->GetUniformLocation("color");
-    // if (colorLoc)
-    //     glUniform3f(colorLoc, 0.0f, 0.0f, 0.0f);
-    // obstacles[0]->Render();
+            checkpoint->Render(camera, true);
+            continue;
+        }
+        checkpoint->Render(camera, false);
+    }
 
     // Measure speed
-    static double lastTime = glfwGetTime();
-    double currentTime = glfwGetTime();
-    static int nbFrames = 0;
-    nbFrames++;
-    if (currentTime - lastTime >= 1.0)
-    {
-        printf("%f ms/frame\n", 1000.0 / double(nbFrames));
-        nbFrames = 0;
-        lastTime += 1.0;
-    }
+    // static double lastTime = glfwGetTime();
+    // double currentTime = glfwGetTime();
+    // static int nbFrames = 0;
+    // nbFrames++;
+    // if (currentTime - lastTime >= 1.0)
+    // {
+    //     printf("%f ms/frame\n", 1000.0 / double(nbFrames));
+    //     nbFrames = 0;
+    //     lastTime += 1.0;
+    // }
 }
 
 void MainScene::OnInputUpdate(float deltaTime, int mods)

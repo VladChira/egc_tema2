@@ -20,7 +20,7 @@ namespace tema2
             rightBar = CreateLine(glm::vec3(1.0f, -1.0f, 0.0f), glm::vec3(1.0f, -3.0f, 0.0f));
         }
 
-        void Render(gfxc::Camera *camera)
+        void Render(gfxc::Camera *camera, bool red)
         {
             shader->Use();
 
@@ -37,7 +37,10 @@ namespace tema2
             // Render inner square
             glm::mat4 innerTransform = transform;
             glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(innerTransform));
-            glUniform3f(shader->GetUniformLocation("color"), 0.0f, 1.0f, 0.0f); // Inner square color (green)
+            if (!red)
+                glUniform3f(shader->GetUniformLocation("color"), 0.0f, 1.0f, 0.0f);
+            else
+                glUniform3f(shader->GetUniformLocation("color"), 1.0f, 0.0f, 0.0f);
             innerSquare->Render();
 
             // Render left bar
@@ -59,6 +62,54 @@ namespace tema2
             delete innerSquare;
             delete leftBar;
             delete rightBar;
+        }
+
+        // Update the AABB collision bounds, accounting for scaling and transformation
+        void UpdateCollisionBounds()
+        {
+            // Define the local bounds based on the outer square size and vertical bar length
+            float squareHalfSize = 1.0f; // Half the outer square size
+            float barHeight = 2.0f;      // Vertical bar length
+
+            glm::vec3 localMin(-squareHalfSize, -barHeight, -0.1f);
+            glm::vec3 localMax(squareHalfSize, squareHalfSize, 0.1f);
+
+            // Generate all 8 corners of the AABB in local space
+            std::vector<glm::vec3> corners = {
+                localMin,
+                glm::vec3(localMax.x, localMin.y, localMin.z),
+                glm::vec3(localMax.x, localMax.y, localMin.z),
+                glm::vec3(localMin.x, localMax.y, localMin.z),
+                glm::vec3(localMin.x, localMin.y, localMax.z),
+                glm::vec3(localMax.x, localMin.y, localMax.z),
+                glm::vec3(localMax.x, localMax.y, localMax.z),
+                glm::vec3(localMin.x, localMax.y, localMax.z)};
+
+            // Transform all corners into world space
+            for (auto &corner : corners)
+            {
+                corner = glm::vec3(transform * glm::vec4(corner, 1.0f));
+            }
+
+            // Recompute the min and max bounds from the transformed corners
+            minBounds = corners[0];
+            maxBounds = corners[0];
+
+            for (const auto &corner : corners)
+            {
+                minBounds = glm::min(minBounds, corner);
+                maxBounds = glm::max(maxBounds, corner);
+            }
+        }
+
+        bool CheckCollision(const glm::vec3 &position)
+        {
+            UpdateCollisionBounds();
+            bool collided = (position.x >= minBounds.x && position.x <= maxBounds.x &&
+                             position.y >= minBounds.y && position.y <= maxBounds.y &&
+                             position.z >= minBounds.z && position.z <= maxBounds.z);
+            previousCollided = collided;
+            return collided;
         }
 
     private:
@@ -87,8 +138,7 @@ namespace tema2
         {
             std::vector<VertexFormat> vertices = {
                 VertexFormat(start),
-                VertexFormat(end)
-            };
+                VertexFormat(end)};
 
             std::vector<unsigned int> indices = {0, 1};
 
@@ -106,5 +156,10 @@ namespace tema2
         glm::mat4 transform = glm::mat4(1.0f);
         Shader *shader;
         std::string name;
+
+        bool previousCollided = false;
+
+        glm::vec3 minBounds;
+        glm::vec3 maxBounds;
     };
 }

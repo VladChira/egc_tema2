@@ -40,5 +40,7 @@ namespace tema2
 
         std::vector<Checkpoint *> checkpoints;
         Checkpoint **activeCheckpoint;
+        std::vector<int> indices;
+        int currentIndex = 0;
     };
 }
