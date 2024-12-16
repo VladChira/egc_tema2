@@ -45,6 +45,8 @@ namespace tema2
 
         Mesh *obstacleMesh;
         std::vector<Obstacle *> obstacles;
+        std::vector<glm::vec2> existingPositions;
+        Arrow *arrow;
 
         std::vector<Checkpoint *> checkpoints;
         Checkpoint **activeCheckpoint;
@@ -53,7 +55,5 @@ namespace tema2
         bool completed = false;
 
         bool game_over = false;
-
-        std::vector<glm::vec2> existingPositions;
     };
 }

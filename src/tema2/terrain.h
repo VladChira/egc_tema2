@@ -25,7 +25,7 @@ namespace tema2
                     float zPos = -size / 2.0f + z * step;
 
                     glm::vec2 pos2D = glm::vec2(xPos, zPos);
-                    float height = getHeightAtPosition(pos2D, size, resolution);
+                    float height = getHeightAtPosition(pos2D);
 
                     glm::vec3 pos = glm::vec3(xPos, height, zPos);
                     glm::vec3 col = glm::vec3(1.0f);
@@ -65,11 +65,17 @@ namespace tema2
             glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
             glUniformMatrix4fv(shader->loc_projection_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetProjectionMatrix()));
             glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(transform));
+
+            GLuint droneHeightLoc = shader->GetUniformLocation("droneHeight");
+            if (droneHeightLoc)
+                glUniform1f(droneHeightLoc, droneHeight);
             mesh->Render();
         }
 
-        float getHeightAtPosition(const glm::vec2 &position, float size, unsigned int resolution)
+        float getHeightAtPosition(const glm::vec2 &position)
         {
+            float size = 500.0f;
+            float resolution = 100.0f;
             float step = size / resolution;
 
             float xNormalized = (position.x + size / 2.0f) / step;
@@ -79,11 +85,23 @@ namespace tema2
             return height;
         }
 
+        bool checkCollision(const glm::vec3 &pos)
+        {
+            return pos.y <= getHeightAtPosition(glm::vec2(pos.x, pos.z));
+        }
+
+        void setDroneHeight(float height)
+        {
+            droneHeight = height;
+        }
+
     private:
         unsigned int resolution;
         Mesh *mesh;
         glm::mat4 transform = glm::mat4(1.0f);
         Shader *shader;
         std::string name;
+
+        float droneHeight = 0.0f;
     };
 }

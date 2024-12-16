@@ -5,6 +5,8 @@ in vec3 test;
 in vec2 uv;
 out vec4 fragColor;
 
+uniform float droneHeight;
+
 float rand(vec2 co) {
     return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453);
 }
@@ -41,6 +43,8 @@ void main() {
     vec3 fieldGreen = vec3(0.4, 0.9, 0.2);
     vec3 darkGreen = vec3(0.2, 0.4, 0.1);
     vec3 brownGreen = vec3(0.3, 0.4, 0.2);
+    vec3 c1 = vec3(0.8, 0.1, 0.1);
+    vec3 c2 = vec3(0.1, 0.1, 0.1);
 
     vec2 noiseCoords = uv * 10.0f;
     float baseNoise = valueNoise(noiseCoords);
@@ -50,13 +54,13 @@ void main() {
     grassColor = mix(grassColor, brownGreen, detailNoise * 0.5);
 
     vec3 color;
-    if (normalizedHeight < 0.5) {
-        float t = normalizedHeight / 0.5;
-        color = mix(fieldGreen, darkGreen, baseNoise);
+    if (droneHeight < 80.0) {
+        float t = droneHeight / 80.0;
+        color = mix(grassColor, brownGreen, t);
     } else {
-        float t = (normalizedHeight - 0.5) / 0.5;
-        color = mix(grassColor, brownGreen, detailNoise * 0.5);
+        float t = (droneHeight - 80.0) / 80.0;
+        color = mix(c1, c2, t);
     }
 
-    fragColor = vec4(grassColor, 1.0);
+    fragColor = vec4(color, 1.0);
 }

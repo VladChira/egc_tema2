@@ -59,9 +59,9 @@ namespace tema2
             if (localPoint.y < 0.0f || localPoint.y > height)
                 return false;
 
-            float radius = (radius * (height - localPoint.y)) / height;
+            float xradius = (radius * (height - localPoint.y)) / height;
             float distanceFromAxis = std::sqrt(localPoint.x * localPoint.x + localPoint.z * localPoint.z);
-            return distanceFromAxis <= radius;
+            return distanceFromAxis <= xradius;
         }
 
         virtual void Render(gfxc::Camera *camera) override

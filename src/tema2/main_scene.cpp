@@ -60,7 +60,7 @@ namespace tema2
 
     void MainScene::GenerateTrees()
     {
-        int treeCount = 100; // Example: define number of trees
+        int treeCount = 100;
         std::mt19937 rng(42);
         std::vector<glm::vec2> treePositions;
         GenerateRandomPositions(treePositions, treeCount, TERRAIN_SIZE, rng);
@@ -68,7 +68,7 @@ namespace tema2
         treeTransforms.clear();
         for (const auto &pos : treePositions)
         {
-            float height = terrain->getHeightAtPosition(pos, TERRAIN_SIZE, TERRAIN_RESOLUTION);
+            float height = terrain->getHeightAtPosition(pos);
             glm::mat4 transform = glm::mat4(1.0f);
             transform = glm::translate(transform, glm::vec3(pos.x, height - 9.0f, pos.y));
             transform = glm::scale(transform, glm::vec3(TREE_SCALE));
@@ -78,7 +78,7 @@ namespace tema2
 
     void MainScene::GenerateObstacles()
     {
-        int obstacleCount = 20; // Example: define number of obstacles
+        int obstacleCount = 20;
         std::mt19937 rng(std::random_device{}());
         std::vector<glm::vec2> obstaclePositions;
         GenerateRandomPositions(obstaclePositions, obstacleCount, TERRAIN_SIZE, rng);
@@ -86,7 +86,7 @@ namespace tema2
         obstacles.clear();
         for (const auto &pos : obstaclePositions)
         {
-            float height = terrain->getHeightAtPosition(pos, TERRAIN_SIZE, TERRAIN_RESOLUTION);
+            float height = terrain->getHeightAtPosition(pos);
 
             auto *obs = new Obstacle("Obstacle", ShaderManager::GetShaderByName("ColorOnly"));
             obs->mesh = obstacleMesh;
@@ -102,7 +102,7 @@ namespace tema2
 
     void MainScene::GenerateCheckpoints()
     {
-        int checkpointCount = 7; // Example: define number of checkpoints
+        int checkpointCount = 7;
         std::mt19937 rng(std::random_device{}());
         std::vector<glm::vec2> checkpointPositions;
         GenerateRandomPositions(checkpointPositions, checkpointCount, TERRAIN_SIZE, rng);
@@ -110,7 +110,7 @@ namespace tema2
         checkpoints.clear();
         for (const auto &pos : checkpointPositions)
         {
-            float height = terrain->getHeightAtPosition(pos, TERRAIN_SIZE, TERRAIN_RESOLUTION);
+            float height = terrain->getHeightAtPosition(pos);
 
             auto *checkpoint = new Checkpoint("Checkpoint", ShaderManager::GetShaderByName("ColorOnly"));
             glm::mat4 transform = glm::mat4(1.0f);
@@ -126,8 +126,8 @@ namespace tema2
     {
         game_over = false;
         std::shuffle(indices.begin(), indices.end(), std::mt19937(std::random_device()()));
-
         activeCheckpoint = &checkpoints[indices[0]];
+        currentIndex = 0;
 
         delete drone;
         drone = new Drone("Drone", ShaderManager::GetShaderByName("ColorOnly"));
@@ -197,7 +197,11 @@ namespace tema2
         std::iota(indices.begin(), indices.end(), 0);
         std::shuffle(indices.begin(), indices.end(), std::mt19937(std::random_device()()));
         activeCheckpoint = &checkpoints[indices[0]];
-        std::cout << checkpoints.size();
+        std::cout << checkpoints.size() << "\n";
+
+        arrow = new Arrow("arrow", ShaderManager::GetShaderByName("ColorOnly"));
+        arrow->ComputeMesh();
+        arrow->SetColor(glm::vec3(0.0f, 0.0f, 1.0f));
 
         mainCamera = new gfxc::Camera();
         mainCamera->SetPerspective(90, window->props.aspectRatio, 0.01f, 1000.0f);
@@ -209,6 +213,7 @@ namespace tema2
         minimapCamera->SetOrthographic(355.0f, 200.0f, 0.01f, 1000.0f);
         minimapCamera->Update();
     }
+
     void MainScene::Update(float deltaTimeSeconds)
     {
         glm::ivec2 resolution = window->props.resolution;
@@ -221,6 +226,11 @@ namespace tema2
             ResetScene();
 
         drone->Update(deltaTimeSeconds);
+        arrow->Render(nullptr);
+
+        if (terrain->checkCollision(drone->pos))
+            game_over = true;
+        terrain->setDroneHeight(drone->pos.y);
 
         mainCamera->m_transform->SetWorldPosition(drone->pos + glm::vec3(0.0f, 1.5f, 0.0f));
         mainCamera->m_transform->SetReleativeRotation(glm::vec3(-30.0f, glm::degrees(drone->GetYPR().x), glm::degrees(drone->GetYPR().z)));
@@ -393,8 +403,7 @@ namespace tema2
 
         if (window->KeyHold(GLFW_KEY_SPACE))
         {
-            drone->ResetRotation();
-            drone->vel = glm::vec3(0.0f);
+            ResetScene();
         }
 
         if (window->KeyHold(GLFW_KEY_W))
