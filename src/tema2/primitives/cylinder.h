@@ -19,9 +19,6 @@ namespace tema2
             // Bottom center vertex
             vertices.push_back(VertexFormat(glm::vec3(0.0f, 0.0f, 0.0f)));
 
-            // Top center vertex
-            //
-
             // Circle vertices for bottom
             for (int i = 0; i <= segments; ++i)
             {
@@ -65,25 +62,21 @@ namespace tema2
             indices.push_back(offset + segments - 1);
             indices.push_back(1 + offset);
 
-            // Indices for the sides
             for (int i = 1; i < segments - 1; ++i)
             {
-                // Triangle 1
                 indices.push_back(i);
                 indices.push_back(offset + i);
                 indices.push_back(i + 1);
 
-                // Triangle 2
                 indices.push_back(i + 1);
                 indices.push_back(offset + i);
                 indices.push_back(offset + i + 1);
             }
-            // Triangle 1
+
             indices.push_back(segments - 2);
             indices.push_back(segments - 2 + offset);
             indices.push_back(segments - 1);
 
-            // Triangle 2
             indices.push_back(segments - 1);
             indices.push_back(segments - 2 + offset);
             indices.push_back(segments - 1 + offset);
@@ -105,9 +98,21 @@ namespace tema2
             mesh->Render();
         }
 
+        bool checkCollision(const glm::vec3 &point, float objectRadius, const glm::mat4 &transform)
+        {
+            glm::mat4 inverseTransform = glm::inverse(transform);
+            glm::vec3 localPoint = glm::vec3(inverseTransform * glm::vec4(point, 1.0f));
+
+            if (localPoint.y + objectRadius < 0.0f || localPoint.y - objectRadius > height)
+                return false;
+
+            float distanceFromVertical = std::sqrt(localPoint.x * localPoint.x + localPoint.z * localPoint.z);
+            return distanceFromVertical <= (radius + objectRadius);
+        }
+
     private:
-        float radius; // Radius of the base
-        float height; // Height of the cylinder
-        int segments; // Number of segments for the base circle
+        float radius;
+        float height;
+        int segments;
     };
 }

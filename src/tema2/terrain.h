@@ -14,21 +14,17 @@ namespace tema2
             std::vector<VertexFormat> vertices;
             std::vector<unsigned int> indices;
 
-            // Calculate step size
             int size = 500.0f;
-            float step = size / resolution; // Distance between grid points
+            float step = size / resolution;
 
-            // Generate vertices
             for (unsigned int z = 0; z <= resolution; ++z)
             {
                 for (unsigned int x = 0; x <= resolution; ++x)
                 {
-                    float xPos = -size / 2.0f + x * step; // Centered around (0,0)
+                    float xPos = -size / 2.0f + x * step;
                     float zPos = -size / 2.0f + z * step;
 
                     glm::vec2 pos2D = glm::vec2(xPos, zPos);
-
-                    // Get height using the getHeightAtPosition function
                     float height = getHeightAtPosition(pos2D, size, resolution);
 
                     glm::vec3 pos = glm::vec3(xPos, height, zPos);
@@ -40,7 +36,6 @@ namespace tema2
                 }
             }
 
-            // Generate indices
             for (unsigned int z = 0; z < resolution; ++z)
             {
                 for (unsigned int x = 0; x < resolution; ++x)
@@ -50,19 +45,16 @@ namespace tema2
                     unsigned int bottomLeft = (z + 1) * (resolution + 1) + x;
                     unsigned int bottomRight = bottomLeft + 1;
 
-                    // First triangle of the grid cell
                     indices.push_back(topLeft);
                     indices.push_back(bottomLeft);
                     indices.push_back(topRight);
 
-                    // Second triangle of the grid cell
                     indices.push_back(topRight);
                     indices.push_back(bottomLeft);
                     indices.push_back(bottomRight);
                 }
             }
 
-            // Create the mesh
             mesh = new Mesh("Terrain");
             mesh->InitFromData(vertices, indices);
         }
@@ -73,34 +65,22 @@ namespace tema2
             glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
             glUniformMatrix4fv(shader->loc_projection_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetProjectionMatrix()));
             glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(transform));
-
-            glUniform1f(glGetUniformLocation(shader->GetProgramID(), "uTerrainScale"), 20.0f);   // adjust as needed
-            glUniform1f(glGetUniformLocation(shader->GetProgramID(), "uNoiseFrequency"), 10.0f); // frequency of noise sampling
-            glUniform1f(glGetUniformLocation(shader->GetProgramID(), "uMaxHeight"), 20.0f);
-
             mesh->Render();
         }
 
         float getHeightAtPosition(const glm::vec2 &position, float size, unsigned int resolution)
         {
-            // Calculate step size
             float step = size / resolution;
 
-            // Map the position into the range used for the grid
             float xNormalized = (position.x + size / 2.0f) / step;
             float zNormalized = (position.y + size / 2.0f) / step;
-
-            // Calculate the value noise position
             glm::vec2 noisePosition = position * 0.02f;
-
-            // Get the height using the valueNoise function
             float height = valueNoise(noisePosition) * 20.0f;
-
             return height;
         }
 
     private:
-        unsigned int resolution; // Number of subdivisions along one axis
+        unsigned int resolution;
         Mesh *mesh;
         glm::mat4 transform = glm::mat4(1.0f);
         Shader *shader;

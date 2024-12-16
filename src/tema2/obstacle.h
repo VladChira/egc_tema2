@@ -17,10 +17,6 @@ namespace tema2
             glUniformMatrix4fv(shader->loc_projection_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetProjectionMatrix()));
             glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(transform));
 
-            glUniform1f(glGetUniformLocation(shader->GetProgramID(), "uTerrainScale"), 20.0f);   // adjust as needed
-            glUniform1f(glGetUniformLocation(shader->GetProgramID(), "uNoiseFrequency"), 10.0f); // frequency of noise sampling
-            glUniform1f(glGetUniformLocation(shader->GetProgramID(), "uMaxHeight"), 20.0f);
-
             GLuint colorLoc = shader->GetUniformLocation("color");
             if (colorLoc)
                 glUniform3f(colorLoc, 0.513f, 0.521f, 0.474f);

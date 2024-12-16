@@ -15,24 +15,17 @@ namespace tema2
             std::vector<unsigned int> indices;
 
             glm::vec3 corners[8] = {
-                {-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f},
-                {-0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f}};
+                {-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f}};
 
             for (const auto &corner : corners)
                 vertices.push_back(VertexFormat(corner));
 
             indices = {
-                // Face 1
                 0, 1, 2, 2, 3, 0,
-                // Face 2
                 4, 5, 6, 6, 7, 4,
-                // Face 3
                 0, 3, 5, 5, 4, 0,
-                // Face 4
                 3, 2, 6, 6, 5, 3,
-                // Face 5
                 2, 1, 7, 7, 6, 2,
-                // Face 6
                 1, 0, 4, 4, 7, 1};
 
             mesh = new Mesh(name);

@@ -16,10 +16,8 @@ namespace tema2
             std::vector<VertexFormat> vertices;
             std::vector<unsigned int> indices;
 
-            // Bottom center vertex
             vertices.push_back(VertexFormat(glm::vec3(0.0f, 0.0f, 0.0f)));
 
-            // Base circle vertices
             for (int i = 0; i < segments; ++i)
             {
                 float angle = (2.0f * glm::pi<float>() * i) / segments;
@@ -28,20 +26,17 @@ namespace tema2
                 vertices.push_back(VertexFormat(glm::vec3(x, 0.0f, z)));
             }
 
-            // Top vertex (apex)
             vertices.push_back(VertexFormat(glm::vec3(0.0f, height, 0.0f)));
             int apexIndex = segments + 1;
 
-            // Indices for the base circle
             for (int i = 1; i <= segments; ++i)
             {
                 int next = (i % segments) + 1;
-                indices.push_back(0); // Center of the base
+                indices.push_back(0);
                 indices.push_back(i);
                 indices.push_back(next);
             }
 
-            // Indices for the sides (triangles connecting to apex)
             for (int i = 1; i <= segments; ++i)
             {
                 int next = (i % segments) + 1;
@@ -52,6 +47,21 @@ namespace tema2
 
             mesh = new Mesh(name);
             mesh->InitFromData(vertices, indices);
+        }
+
+        bool checkCollision(const glm::vec3 &point, const glm::mat4 &transform)
+        {
+            glm::mat4 inverseTransform = glm::inverse(transform);
+
+            // Place the point into cone local coordinate system by inverting its transform
+            glm::vec3 localPoint = glm::vec3(inverseTransform * glm::vec4(point, 1.0f));
+
+            if (localPoint.y < 0.0f || localPoint.y > height)
+                return false;
+
+            float radius = (radius * (height - localPoint.y)) / height;
+            float distanceFromAxis = std::sqrt(localPoint.x * localPoint.x + localPoint.z * localPoint.z);
+            return distanceFromAxis <= radius;
         }
 
         virtual void Render(gfxc::Camera *camera) override
@@ -69,8 +79,8 @@ namespace tema2
         }
 
     private:
-        float radius; // Radius of the base
-        float height; // Height of the cone
-        int segments; // Number of segments for the base circle
+        float radius;
+        float height;
+        int segments;
     };
 }

@@ -23,7 +23,6 @@ namespace tema2
 
             hub = new Cylinder(name + "_hub", shader, hubRadius, hubHeight);
             hub->ComputeMesh();
-            // hub->Translate(glm::vec3(0.0f, -hubHeight / 2.5f, 0.0f));
             hub->SetColor(glm::vec3(0.95f));
         }
 
@@ -41,7 +40,6 @@ namespace tema2
                 bladeAngle_RAD += angularVelocity * deltaTimeSeconds;
                 if (bladeAngle_RAD >= glm::radians(360.0f))
                     bladeAngle_RAD = 0.0f;
-
             }
         }
 

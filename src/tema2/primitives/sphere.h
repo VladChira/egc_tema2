@@ -16,7 +16,6 @@ namespace tema2
             std::vector<VertexFormat> vertices;
             std::vector<unsigned int> indices;
 
-            // Generate vertices
             for (int stack = 0; stack <= stacks; ++stack)
             {
                 float phi = glm::pi<float>() * stack / stacks;
@@ -30,7 +29,6 @@ namespace tema2
                 }
             }
 
-            // Generate indices
             for (int stack = 0; stack < stacks; ++stack)
             {
                 for (int slice = 0; slice < slices; ++slice)
@@ -38,7 +36,6 @@ namespace tema2
                     int first = (stack * (slices + 1)) + slice;
                     int second = first + slices + 1;
 
-                    // Two triangles per quad
                     indices.push_back(first);
                     indices.push_back(second);
                     indices.push_back(first + 1);
@@ -63,8 +60,8 @@ namespace tema2
         }
 
     private:
-        float radius; // Radius of the sphere
-        int stacks;   // Vertical divisions
-        int slices;   // Horizontal divisions
+        float radius;
+        int stacks;
+        int slices;
     };
 }
