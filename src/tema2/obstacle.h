@@ -21,9 +21,15 @@ namespace tema2
             if (colorLoc)
                 glUniform3f(colorLoc, 0.513f, 0.521f, 0.474f);
             mesh->Render();
-
-            mesh->Render();
         }
+
+        bool checkCollision(const glm::vec3 &point, float radius) const
+        {
+            glm::vec3 obstaclePosition = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
+            float distance = glm::distance(point, obstaclePosition);
+            return distance <= radius;
+        }
+
         Mesh *mesh;
         glm::mat4 transform = glm::mat4(1.0f);
         Shader *shader;

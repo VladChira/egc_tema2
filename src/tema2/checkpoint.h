@@ -11,8 +11,8 @@ namespace tema2
         {
             outerSquare = CreateSquareOutline(2.0f);
             innerSquare = CreateSquareOutline(1.2f);
-            leftBar = CreateLine(glm::vec3(-1.0f, -1.0f, 0.0f), glm::vec3(-1.0f, -3.0f, 0.0f));
-            rightBar = CreateLine(glm::vec3(1.0f, -1.0f, 0.0f), glm::vec3(1.0f, -3.0f, 0.0f));
+            leftLeg = ComputeLegMesh(glm::vec3(-1.0f, -1.0f, 0.0f), glm::vec3(-1.0f, -3.0f, 0.0f));
+            rightLeg = ComputeLegMesh(glm::vec3(1.0f, -1.0f, 0.0f), glm::vec3(1.0f, -3.0f, 0.0f));
         }
 
         void Render(gfxc::Camera *camera, glm::vec3 color)
@@ -32,28 +32,28 @@ namespace tema2
 
             glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(transform));
             glUniform3f(shader->GetUniformLocation("color"), 0.0f, 1.0f, 0.0f);
-            leftBar->Render();
+            leftLeg->Render();
 
             glUniformMatrix4fv(shader->loc_model_matrix, 1, GL_FALSE, glm::value_ptr(transform));
             glUniform3f(shader->GetUniformLocation("color"), 0.0f, 1.0f, 0.0f);
-            rightBar->Render();
+            rightLeg->Render();
         }
 
         ~Checkpoint()
         {
             delete outerSquare;
             delete innerSquare;
-            delete leftBar;
-            delete rightBar;
+            delete leftLeg;
+            delete rightLeg;
         }
 
         void UpdateCollisionBounds()
         {
-            float squareHalfSize = 1.0f;
-            float barHeight = 2.0f;
+            float halfSquare = 1.0f;
+            float legHeight = 2.0f;
 
-            glm::vec3 localMin(-squareHalfSize, -barHeight, -0.1f);
-            glm::vec3 localMax(squareHalfSize, squareHalfSize, 0.1f);
+            glm::vec3 localMin(-halfSquare, -legHeight, -0.1f);
+            glm::vec3 localMax(halfSquare, halfSquare, 0.1f);
 
             std::vector<glm::vec3> corners = {
                 localMin,
@@ -70,7 +70,6 @@ namespace tema2
                 corner = glm::vec3(transform * glm::vec4(corner, 1.0f));
             }
 
-            // Recompute the min and max bounds from the transformed corners
             minBounds = corners[0];
             maxBounds = corners[0];
 
@@ -110,7 +109,7 @@ namespace tema2
             return square;
         }
 
-        Mesh *CreateLine(const glm::vec3 &start, const glm::vec3 &end)
+        Mesh *ComputeLegMesh(const glm::vec3 &start, const glm::vec3 &end)
         {
             std::vector<VertexFormat> vertices = {
                 VertexFormat(start),
@@ -127,8 +126,8 @@ namespace tema2
     public:
         Mesh *outerSquare;
         Mesh *innerSquare;
-        Mesh *leftBar;
-        Mesh *rightBar;
+        Mesh *leftLeg;
+        Mesh *rightLeg;
         glm::mat4 transform = glm::mat4(1.0f);
         Shader *shader;
         std::string name;

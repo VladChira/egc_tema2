@@ -12,6 +12,9 @@
 #include "tema2/tree.h"
 #include "tema2/obstacle.h"
 #include "tema2/checkpoint.h"
+#include "tema2/utils/timer.h"
+
+#include "components/text_renderer.h"
 
 namespace tema2
 {
@@ -37,6 +40,7 @@ namespace tema2
         glm::vec3 skyColor = glm::vec3(0.529, 0.807, 0.921);
         gfxc::Camera *mainCamera;
         gfxc::Camera *minimapCamera;
+        gfxc::Camera *arrowCam;
 
         Drone *drone;
         Terrain *terrain;
@@ -55,5 +59,8 @@ namespace tema2
         bool completed = false;
 
         bool game_over = false;
+
+        gfxc::TextRenderer *textRenderer;
+        Timer timer;
     };
 }

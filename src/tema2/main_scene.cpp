@@ -26,6 +26,7 @@ namespace tema2
 
         for (int i = 0; i < count; ++i)
         {
+            // Find a new valid randomn position with rejection sampling
             glm::vec2 newPosition;
             bool valid;
             do
@@ -33,7 +34,6 @@ namespace tema2
                 valid = true;
                 newPosition = glm::vec2(dist(rng), dist(rng));
 
-                // Ensure minimum distance from existing positions
                 for (const auto &pos : existingPositions)
                 {
                     if (glm::distance(newPosition, pos) < MIN_DISTANCE_BETWEEN_OBJECTS)
@@ -42,7 +42,7 @@ namespace tema2
                         break;
                     }
                 }
-                // Ensure minimum distance from already generated positions
+
                 for (const auto &pos : positions)
                 {
                     if (glm::distance(newPosition, pos) < MIN_DISTANCE_BETWEEN_OBJECTS)
@@ -102,7 +102,7 @@ namespace tema2
 
     void MainScene::GenerateCheckpoints()
     {
-        int checkpointCount = 7;
+        int checkpointCount = 3;
         std::mt19937 rng(std::random_device{}());
         std::vector<glm::vec2> checkpointPositions;
         GenerateRandomPositions(checkpointPositions, checkpointCount, TERRAIN_SIZE, rng);
@@ -132,6 +132,9 @@ namespace tema2
         delete drone;
         drone = new Drone("Drone", ShaderManager::GetShaderByName("ColorOnly"));
         drone->pos = glm::vec3(0.0f, 50.0f, 0.0f);
+
+        timer.reset();
+        timer.start(2, 30);
     }
 
     void MainScene::RenderMinimap(int width, int height)
@@ -145,6 +148,9 @@ namespace tema2
         glClear(GL_DEPTH_BUFFER_BIT);
 
         terrain->Render(minimapCamera);
+
+        arrow->Render(minimapCamera);
+
         for (const auto &transform : treeTransforms)
         {
             tree->Render(minimapCamera, transform);
@@ -162,6 +168,10 @@ namespace tema2
             checkpoint->Render(minimapCamera,
                                activeCheckpoint && checkpoint == *activeCheckpoint ? glm::vec3(1.0f, 0.0f, 0.0f) : glm::vec3(0.0f, 1.0f, 0.0f));
         }
+
+        glViewport(MINIMAP_X, MINIMAP_Y - MINIMAP_HEIGHT - 10, MINIMAP_WIDTH, MINIMAP_HEIGHT);
+
+        arrow->Render(arrowCam);
 
         glViewport(0, 0, width, height);
     }
@@ -212,6 +222,20 @@ namespace tema2
         minimapCamera = new gfxc::Camera();
         minimapCamera->SetOrthographic(355.0f, 200.0f, 0.01f, 1000.0f);
         minimapCamera->Update();
+
+        arrowCam = new gfxc::Camera();
+        arrowCam->SetOrthographic(355.0f, 200.0f, 0.01f, 1000.0f);
+        arrowCam->m_transform->SetWorldPosition(glm::vec3(0.0f, 100.0f, 0.0f));
+        arrowCam->m_transform->SetReleativeRotation(glm::vec3(-90.0f, 0.0f, 0.0f));
+        arrowCam->Update();
+
+        glm::ivec2 resolution = window->GetResolution();
+        textRenderer = new gfxc::TextRenderer(window->props.selfDir, resolution.x, resolution.y);
+
+        textRenderer->Load(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::FONTS, "Hack-Bold.ttf"), 28);
+
+        timer.reset();
+        timer.start(2, 30);
     }
 
     void MainScene::Update(float deltaTimeSeconds)
@@ -222,15 +246,28 @@ namespace tema2
 
         glViewport(0, 0, resolution.x, resolution.y);
 
-        if (game_over)
+        if (game_over || timer.ended())
             ResetScene();
 
         drone->Update(deltaTimeSeconds);
-        arrow->Render(nullptr);
+
+        if (activeCheckpoint != nullptr)
+        {
+            glm::vec3 checkpointPos = glm::vec3((*activeCheckpoint)->transform[3]);
+            arrow->Update(drone->pos, drone->GetYPR().x, checkpointPos);
+        }
 
         if (terrain->checkCollision(drone->pos))
             game_over = true;
         terrain->setDroneHeight(drone->pos.y);
+
+        for (glm::mat4 t : treeTransforms)
+            if (tree->checkCollision(drone->pos, t))
+                game_over = true;
+        
+        for (auto o : obstacles)
+            if (o->checkCollision(drone->pos, 15.0f))
+                game_over = true;
 
         mainCamera->m_transform->SetWorldPosition(drone->pos + glm::vec3(0.0f, 1.5f, 0.0f));
         mainCamera->m_transform->SetReleativeRotation(glm::vec3(-30.0f, glm::degrees(drone->GetYPR().x), glm::degrees(drone->GetYPR().z)));
@@ -248,10 +285,6 @@ namespace tema2
 
         for (auto obs : obstacles)
             obs->Render(mainCamera);
-
-        for (glm::mat4 t : treeTransforms)
-            if (tree->checkCollision(drone->pos, t))
-                game_over = true;
 
         glLineWidth(5.0f);
         for (auto checkpoint : checkpoints)
@@ -273,6 +306,7 @@ namespace tema2
                         // We have completed all the gates, stop
                         activeCheckpoint = nullptr;
                         completed = true;
+                        timer.stop();
                         break;
                     }
 
@@ -288,42 +322,13 @@ namespace tema2
             checkpoint->Render(mainCamera, glm::vec3(0.0f, 1.0f, 0.0f));
         }
 
+        textRenderer->RenderText(timer.getTime(), 0.02 * resolution.x, 0.05 * resolution.y, 2.0f);
+
         RenderMinimap(resolution.x, resolution.y);
     }
 
     void MainScene::OnInputUpdate(float deltaTime, int mods)
     {
-        if (glfwJoystickPresent(GLFW_JOYSTICK_1))
-        {
-            int axesCount;
-            const float *axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axesCount);
-
-            // Roll control
-            // float roll_value = axes[0];
-            // if (abs(roll_value) < 0.1)
-            //     roll_value = 0.0f;
-            // drone->Rotate(0.0f, 0.0f, -roll_value);
-
-            // // Pitch control
-            // float pitch_value = axes[1];
-            // if (abs(pitch_value) < 0.1)
-            //     pitch_value = 0.0f;
-            // drone->Rotate(0.0f, pitch_value, 0.0f);
-
-            // float up_value = -axes[4];
-            // if (abs(up_value) < 0.1)
-            //     up_value = 0.0f;
-            // drone->motor1Thrust = drone->hoverThrust + drone->maxThrust * up_value;
-            // drone->motor2Thrust = drone->hoverThrust + drone->maxThrust * up_value;
-            // drone->motor3Thrust = drone->hoverThrust + drone->maxThrust * up_value;
-            // drone->motor4Thrust = drone->hoverThrust + drone->maxThrust * up_value;
-
-            // float yaw_value = axes[3];
-            // if (abs(yaw_value) < 0.1)
-            //     yaw_value = 0.0f;
-            // drone->rot.y += -yaw_value * deltaTime;
-        }
-
         // ------------- YAW ---------------------
         if (window->KeyHold(GLFW_KEY_J) || window->KeyHold(GLFW_KEY_L))
         {
@@ -405,23 +410,5 @@ namespace tema2
         {
             ResetScene();
         }
-
-        if (window->KeyHold(GLFW_KEY_W))
-            mainCamera->MoveForward(deltaTime);
-
-        if (window->KeyHold(GLFW_KEY_S))
-            mainCamera->MoveBackward(deltaTime);
-
-        if (window->KeyHold(GLFW_KEY_A))
-            mainCamera->MoveLeft(deltaTime);
-
-        if (window->KeyHold(GLFW_KEY_D))
-            mainCamera->MoveRight(deltaTime);
-
-        if (window->KeyHold(GLFW_KEY_Q))
-            mainCamera->MoveUp(deltaTime);
-
-        if (window->KeyHold(GLFW_KEY_E))
-            mainCamera->MoveDown(deltaTime);
     }
 }
