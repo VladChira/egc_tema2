@@ -44,7 +44,7 @@ namespace tema2
             this->transform = t;
         }
 
-        virtual void Render(gfxc::Camera *camera) override
+        virtual void Render(Camera *camera) override
         {
             shader->Use();
             glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));

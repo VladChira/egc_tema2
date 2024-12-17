@@ -15,7 +15,7 @@ namespace tema2
             rightLeg = ComputeLegMesh(glm::vec3(1.0f, -1.0f, 0.0f), glm::vec3(1.0f, -3.0f, 0.0f));
         }
 
-        void Render(gfxc::Camera *camera, glm::vec3 color)
+        void Render(Camera *camera, glm::vec3 color)
         {
             shader->Use();
 
@@ -129,12 +129,14 @@ namespace tema2
         Mesh *leftLeg;
         Mesh *rightLeg;
         glm::mat4 transform = glm::mat4(1.0f);
-        Shader *shader;
         std::string name;
+        Shader *shader;
 
         bool previousCollided = false;
 
         glm::vec3 minBounds;
         glm::vec3 maxBounds;
+
+    private:
     };
 }

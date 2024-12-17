@@ -32,7 +32,7 @@ namespace tema2
             mesh->InitFromData(vertices, indices);
         }
 
-        virtual void Render(gfxc::Camera *camera) override
+        virtual void Render(Camera *camera) override
         {
             shader->Use();
             glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
@@ -45,7 +45,7 @@ namespace tema2
             mesh->Render();
         }
 
-        virtual void Render(gfxc::Camera *camera, glm::mat4 newTransform)
+        virtual void Render(Camera *camera, glm::mat4 newTransform)
         {
             shader->Use();
             glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));

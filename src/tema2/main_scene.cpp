@@ -213,20 +213,19 @@ namespace tema2
         arrow->ComputeMesh();
         arrow->SetColor(glm::vec3(0.0f, 0.0f, 1.0f));
 
-        mainCamera = new gfxc::Camera();
+        mainCamera = new Camera();
         mainCamera->SetPerspective(90, window->props.aspectRatio, 0.01f, 1000.0f);
-        mainCamera->m_transform->SetMoveSpeed(2);
-        mainCamera->m_transform->SetWorldPosition(glm::vec3(0.0f, 4.6f, 2.5f));
+        mainCamera->SetWorldPosition(glm::vec3(0.0f, 4.6f, 2.5f));
         mainCamera->Update();
 
-        minimapCamera = new gfxc::Camera();
+        minimapCamera = new Camera();
         minimapCamera->SetOrthographic(355.0f, 200.0f, 0.01f, 1000.0f);
         minimapCamera->Update();
 
-        arrowCam = new gfxc::Camera();
+        arrowCam = new Camera();
         arrowCam->SetOrthographic(355.0f, 200.0f, 0.01f, 1000.0f);
-        arrowCam->m_transform->SetWorldPosition(glm::vec3(0.0f, 100.0f, 0.0f));
-        arrowCam->m_transform->SetReleativeRotation(glm::vec3(-90.0f, 0.0f, 0.0f));
+        arrowCam->SetWorldPosition(glm::vec3(0.0f, 100.0f, 0.0f));
+        arrowCam->SetRelativeRotation(glm::vec3(-90.0f, 90.0f, 0.0f));
         arrowCam->Update();
 
         glm::ivec2 resolution = window->GetResolution();
@@ -269,12 +268,12 @@ namespace tema2
             if (o->checkCollision(drone->pos, 15.0f))
                 game_over = true;
 
-        mainCamera->m_transform->SetWorldPosition(drone->pos + glm::vec3(0.0f, 1.5f, 0.0f));
-        mainCamera->m_transform->SetReleativeRotation(glm::vec3(-30.0f, glm::degrees(drone->GetYPR().x), glm::degrees(drone->GetYPR().z)));
+        mainCamera->SetWorldPosition(drone->pos + glm::vec3(0.0f, 1.5f, 0.0f));
+        mainCamera->SetRelativeRotation(glm::vec3(-30.0f, glm::degrees(-drone->GetYPR().x) - 90.0f, glm::degrees(-drone->GetYPR().z)));
         mainCamera->Update();
 
-        minimapCamera->m_transform->SetWorldPosition(glm::vec3(drone->pos.x, 100.0f, drone->pos.z));
-        minimapCamera->m_transform->SetReleativeRotation(glm::vec3(-90.0f, glm::degrees(drone->GetYPR().x), 0.0f));
+        minimapCamera->SetWorldPosition(glm::vec3(drone->pos.x, 100.0f, drone->pos.z));
+        minimapCamera->SetRelativeRotation(glm::vec3(-90.0f, glm::degrees(drone->GetYPR().x) - 90.0f, 0.0f));
         minimapCamera->Update();
 
         drone->Render(mainCamera);

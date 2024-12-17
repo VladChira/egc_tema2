@@ -10,7 +10,7 @@ namespace tema2
         {
         }
 
-        void Render(gfxc::Camera *camera)
+        void Render(Camera *camera)
         {
             shader->Use();
             glUniformMatrix4fv(shader->loc_view_matrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
@@ -32,7 +32,7 @@ namespace tema2
 
         Mesh *mesh;
         glm::mat4 transform = glm::mat4(1.0f);
-        Shader *shader;
         std::string name;
+        Shader *shader;
     };
 }

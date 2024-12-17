@@ -61,7 +61,7 @@ namespace tema2
             return totalThrust * thrustDirection;
         }
 
-        void RenderIndicator(gfxc::Camera *camera, glm::vec3 pos)
+        void RenderIndicator(Camera *camera, glm::vec3 pos)
         {
             glm::mat4 transform = glm::mat4(1.0f);
             transform = glm::translate(transform, pos);
@@ -141,7 +141,7 @@ namespace tema2
             }
         }
 
-        void Render(gfxc::Camera *camera)
+        void Render(Camera *camera)
         {
             transform = glm::translate(glm::mat4(1.0f), pos);
             transform *= glm::toMat4(orientation);

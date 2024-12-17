@@ -3,9 +3,9 @@
 #include <random>
 
 #include "core/world.h"
-#include "components/camera.h"
 #include "core/gpu/mesh.h"
 
+#include "tema2/utils/camera.h"
 #include "tema2/primitives/primitives.h"
 #include "tema2/terrain.h"
 #include "tema2/drone.h"
@@ -38,9 +38,9 @@ namespace tema2
 
     private:
         glm::vec3 skyColor = glm::vec3(0.529, 0.807, 0.921);
-        gfxc::Camera *mainCamera;
-        gfxc::Camera *minimapCamera;
-        gfxc::Camera *arrowCam;
+        Camera *mainCamera;
+        Camera *minimapCamera;
+        Camera *arrowCam;
 
         Drone *drone;
         Terrain *terrain;

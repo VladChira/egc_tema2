@@ -48,7 +48,7 @@ namespace tema2
             transform = newTransform;
         }
 
-        void Render(gfxc::Camera *camera)
+        void Render(Camera *camera)
         {
             // Calculate the final transform of the blade by
             // going through the transformation hierachy

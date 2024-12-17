@@ -5,8 +5,9 @@
 #include <vector>
 
 #include "core/gpu/mesh.h"
+
 #include "tema2/utils/shader_manager.h"
-#include "components/camera.h"
+#include "tema2/utils/camera.h"
 
 namespace tema2
 {
@@ -21,7 +22,7 @@ namespace tema2
         virtual ~Primitive() {};
 
         virtual void ComputeMesh() = 0;
-        virtual void Render(gfxc::Camera *camera) = 0;
+        virtual void Render(Camera *camera) = 0;
 
         virtual void Translate(glm::vec3 newPosition)
         {

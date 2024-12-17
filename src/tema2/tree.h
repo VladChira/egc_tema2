@@ -34,7 +34,7 @@ namespace tema2
             delete foliageTop;
         }
 
-        void Render(gfxc::Camera *camera, glm::mat4 transform = glm::mat4(1.0f))
+        void Render(Camera *camera, glm::mat4 transform = glm::mat4(1.0f))
         {
             glm::mat4 trunkFinalTransform = transform * ComputeTrunkLocalTransform();
             trunk->SetTransform(trunkFinalTransform);
